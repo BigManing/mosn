@@ -54,6 +54,10 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
+/*
+定义了三个命令的具体配置
+cmdStart ： mosn start [flag] [args]
+*/
 var (
 	flagToMosnLogLevel = map[string]string{
 		"trace":    "TRACE",
@@ -68,6 +72,7 @@ var (
 	cmdStart = cli.Command{
 		Name:  "start",
 		Usage: "start mosn proxy",
+		// 可配置的启动参数
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "config, c",
@@ -158,13 +163,18 @@ var (
 			},
 		},
 		Action: func(c *cli.Context) error {
+			//  启动时 做了什么 ？  使用状态管理器 管理各个阶段需要处理的逻辑 ， 真正执行 stm.RunAll() 。
 			app := mosn.NewMosn()
+
+			// 初始化  状态管理器  （主要有11个阶段）
 			stm := stagemanager.InitStageManager(c, c.String("config"), app)
 			// if needs featuregate init in parameter stage or init stage
 			// append a new stage and called featuregate.ExecuteInitFunc(keys...)
 			// parameter parsed registered
+			// 【参数解析阶段】 添加 扩展注册、默认参数解析
 			stm.AppendParamsParsedStage(ExtensionsRegister)
 			stm.AppendParamsParsedStage(DefaultParamsParsed)
+			//【初始化阶段】 初始化 istio （1.10.6 ）  XdsInfo
 			// initial registered
 			stm.AppendInitStage(func(cfg *v2.MOSNConfig) {
 				drainTime := c.Int("drain-time-s")
@@ -179,7 +189,7 @@ var (
 				podName := c.String("pod-name")
 				podNamespace := c.String("pod-namespace")
 				podIp := c.String("pod-ip")
-
+				// 初始化 istio （1.10.6 ）  XdsInfo
 				if serviceNode != "" {
 					istio1106.InitXdsInfo(cfg, serviceCluster, serviceNode, serviceMeta, metaLabels)
 				} else {
@@ -193,6 +203,7 @@ var (
 					}
 				}
 			})
+			//【初始化阶段】 初始化mosn默认内置操作；设置版本号
 			stm.AppendInitStage(mosn.DefaultInitStage)
 			stm.AppendInitStage(func(_ *v2.MOSNConfig) {
 				// set version and go version
@@ -201,12 +212,16 @@ var (
 				admin.SetVersion(Version)
 			})
 			stm.AppendInitStage(holmes.Register)
+			//【启动之前阶段】 初始化mosn默认内置 预启动前操作
 			// pre-startup
 			stm.AppendPreStartStage(mosn.DefaultPreStartStage) // called finally stage by default
+			//【启动阶段】 初始化mosn默认内置  启动操作（启动admin server）
 			// startup
 			stm.AppendStartStage(mosn.DefaultStartStage)
+			//【停止阶段】 holmes.Stop
 			// after-stop
 			stm.AppendAfterStopStage(holmes.Stop)
+			// 前面各个阶段的逻辑已经配置好 ，开始真正的启动。
 			// execute all stages
 			stm.RunAll()
 			return nil
@@ -242,6 +257,10 @@ var (
 	}
 )
 
+/*
+设置日志打印配置
+设置 featuregate  ， 有异常 会退出
+*/
 func DefaultParamsParsed(c *cli.Context) {
 	// log level control
 	flagLogLevel := c.String("log-level")
@@ -260,6 +279,11 @@ func DefaultParamsParsed(c *cli.Context) {
 	}
 }
 
+/*
+1、链路追踪注册新的驱动
+2、 链路追踪 builder
+3、注册codec
+*/
 // Call the extensions that are needed here, instead of in extensions init() function
 func ExtensionsRegister(c *cli.Context) {
 	// tracer driver register

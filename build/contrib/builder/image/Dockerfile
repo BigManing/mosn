@@ -1,3 +1,5 @@
+#构建mosn镜像 内部使用supervisord 启动
+
 FROM centos:centos7 as builder
 
 ENV CHROOT_MOSN_PREFIX         /ROOT/home/admin/mosn
