@@ -83,12 +83,19 @@ var _ = &corev3.Pipe{}
 var Version = ""
 
 func main() {
+	// 启动入口方法
+
+	//1  新建一个cli app
 	app := newMosnApp(&cmdStart)
 
+	// 2  启动
 	// ignore error so we don't exit non-zero and break gfmrun README example tests
 	_ = app.Run(os.Args)
 }
 
+/*
+cli app 构建详情
+*/
 func newMosnApp(startCmd *cli.Command) *cli.App {
 	app := cli.NewApp()
 	app.Name = "mosn"
@@ -98,19 +105,19 @@ func newMosnApp(startCmd *cli.Command) *cli.App {
 	app.Usage = "MOSN is modular observable smart netstub."
 	app.Flags = cmdStart.Flags
 
-	//commands
+	//commands  内置三个子命令
 	app.Commands = []cli.Command{
 		cmdStart,
 		cmdStop,
 		cmdReload,
 	}
 
-	//action
+	//action  默认action
 	app.Action = func(c *cli.Context) error {
 		if c.NumFlags() == 0 {
 			return cli.ShowAppHelp(c)
 		}
-
+		//  mosn 后面无子命令时 ， 默认执行 start action
 		return startCmd.Action.(func(c *cli.Context) error)(c)
 	}
 
