@@ -232,6 +232,7 @@ var (
 	cmdStop = cli.Command{
 		Name:  "stop",
 		Usage: "stop mosn proxy",
+		//  stop命令只有 -c flag
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   "config, c",
@@ -242,8 +243,10 @@ var (
 		},
 		Action: func(c *cli.Context) (err error) {
 			app := mosn.NewMosn()
+			// 根据配置文件 执行停止操作
 			stm := stagemanager.InitStageManager(c, c.String("config"), app)
 			stm.AppendInitStage(mosn.InitDefaultPath)
+			// 停止进程（根据配置文件->pid->porc->syscall.signal 然后监听是否退出）
 			return stm.StopMosnProcess()
 		},
 	}
