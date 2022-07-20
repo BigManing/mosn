@@ -76,6 +76,7 @@ type StreamFilterFactory struct {
 }
 
 // CreateFilterChain add the flow control stream filter to filter chain.
+//2 创建过滤链  具体是针对接受流 新加了一个fileter （StreamReceiverFilter） 。 具体跳转到 stream fileter中
 func (f *StreamFilterFactory) CreateFilterChain(context context.Context,
 	callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := NewStreamFilter(GetCallbacksByConfig(f.config), f.trafficType)
@@ -123,20 +124,25 @@ func loadConfig(conf map[string]interface{}) (*Config, error) {
 	return flowControlCfg, nil
 }
 
+// 1 创建过滤器工厂类
 func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	// 加载配置
 	flowControlCfg, err := loadConfig(conf)
 	if err != nil {
 		return nil, err
 	}
+	// 流控 加载规则
 	_, err = flow.LoadRules(flowControlCfg.Rules)
 	if err != nil {
 		log.DefaultLogger.Errorf("update rules failed")
 		return nil, err
 	}
+	// 初始化 sentinel 组件
 	initOnce.Do(func() {
 		// TODO: can't support dynamically update at present, should be optimized
 		initSentinel(flowControlCfg.AppName, flowControlCfg.LogPath)
 	})
+	//  返回过滤器工厂类 ，后续执行 CreateFilterChain 方法
 	factory := &StreamFilterFactory{
 		config:      flowControlCfg,
 		trafficType: parseTrafficType(conf),

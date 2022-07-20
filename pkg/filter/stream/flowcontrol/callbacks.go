@@ -65,6 +65,7 @@ func RegisterCallbacks(name string, cb Callbacks) {
 }
 
 // GetCallbacksByName returns specified or default Callbacks.
+// 根据配置里的callback name 从map中获取callbacks 对象 ，
 func GetCallbacksByConfig(conf *Config) Callbacks {
 	cb, ok := callbacksRegistry.Load(conf.CallbackName)
 	if !ok || cb == nil {

@@ -44,6 +44,7 @@ type StreamFilter struct {
 }
 
 // NewStreamFilter creates flow control filter.
+// callbacks  GetCallbacksByConfig(f.config)
 func NewStreamFilter(callbacks Callbacks, trafficType base.TrafficType) *StreamFilter {
 	callbacks.Init()
 	return &StreamFilter{Callbacks: callbacks, trafficType: trafficType}
@@ -58,6 +59,7 @@ func (f *StreamFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHand
 }
 
 // OnReceive creates resource and judges whether current request should be blocked.
+// 核心方法  有請求時  回調callback ， 然后调用sentinel.Entry 进行判断 是否符合rule
 func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap,
 	buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	if !f.Callbacks.Enabled() || f.Callbacks.ShouldIgnore(f, ctx, headers, buf, trailers) {
