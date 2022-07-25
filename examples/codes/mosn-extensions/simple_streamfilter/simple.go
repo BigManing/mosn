@@ -10,10 +10,13 @@ import (
 )
 
 // register create filter factory func
+// 简单的stream拦截器
 func init() {
+	//1  注册拦截器类型
 	api.RegisterStream("demo", CreateDemoFactory)
 }
 
+// 2.1 创建 stream连接器Factory
 func CreateDemoFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	b, _ := json.Marshal(conf)
 	m := make(map[string]string)
@@ -30,6 +33,7 @@ type DemoFactory struct {
 	config map[string]string
 }
 
+// 2.2 实现StreamFileterChainFactory的接口
 func (f *DemoFactory) CreateFilterChain(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := NewDemoFilter(ctx, f.config)
 	// ReceiverFilter, run the filter when receive a request from downstream
@@ -49,12 +53,14 @@ type DemoFilter struct {
 
 // NewDemoFilter returns a DemoFilter, the DemoFilter is an implementation of api.StreamReceiverFilter
 // A Filter can implement both api.StreamReceiverFilter and api.StreamSenderFilter.
+// 3 定义 streamFilter
 func NewDemoFilter(ctx context.Context, config map[string]string) *DemoFilter {
 	return &DemoFilter{
 		config: config,
 	}
 }
 
+//4 实现 api.StreamReceiverFilter 方法
 func (f *DemoFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	log.DefaultContextLogger.Infof(ctx, "receive a request into demo filter")
 	passed := true
